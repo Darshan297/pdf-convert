@@ -1,0 +1,20 @@
+{
+  "url": "https://pdf-services.adobe.io/operation/exportpdf",
+  "method": "POST",
+  "headers": {
+    "Authorization": "Bearer ${ADOBE_ACCESS_TOKEN}",
+    "x-api-key": "${ADOBE_CLIENT_ID}"
+  },
+  "body": [
+    {
+      "name": "file",
+      "contents": "{{2.content}}",
+      "filename": "{{2.filename}}",
+      "contentType": "application/pdf"
+    },
+    {
+      "name": "targetFormat",
+      "contents": "xlsx"
+    }
+  ]
+}
