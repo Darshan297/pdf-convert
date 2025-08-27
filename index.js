@@ -10,11 +10,16 @@ dotenv.config();
 const app = express();
 const upload = multer({ dest: "uploads/" });
 
-app.post("/convert", upload.single("file"), async (req, res) => {
+/**
+ * Convert PDF → Excel (XLSX) using Adobe API
+ * Endpoint: POST /render/convert
+ * Body: multipart/form-data with `file`
+ */
+app.post("/render/convert", upload.single("file"), async (req, res) => {
   try {
     const filePath = req.file.path;
 
-    // Prepare multipart form
+    // Prepare form data for Adobe API
     const form = new FormData();
     form.append("file", fs.createReadStream(filePath), req.file.originalname);
     form.append("targetFormat", "xlsx");
@@ -28,22 +33,32 @@ app.post("/convert", upload.single("file"), async (req, res) => {
           Authorization: `Bearer ${process.env.ADOBE_ACCESS_TOKEN}`,
           "x-api-key": process.env.ADOBE_CLIENT_ID,
         },
-        responseType: "arraybuffer", // important: get binary
+        responseType: "arraybuffer", // ensure binary XLSX comes back
       }
     );
 
-    // Return XLSX as a download
-    res.setHeader("Content-Disposition", 'attachment; filename="converted.xlsx"');
-    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    // Send the XLSX file to client
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${req.file.originalname.replace(".pdf", ".xlsx")}"`
+    );
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
     res.send(response.data);
 
-    // Clean up temp file
+    // Clean up uploaded file
     fs.unlinkSync(filePath);
   } catch (err) {
-    console.error(err.response?.data || err.message);
-    res.status(500).json({ error: "Conversion failed", details: err.message });
+    console.error("❌ Conversion failed:", err.response?.data || err.message);
+    res
+      .status(500)
+      .json({ error: "Conversion failed", details: err.message });
   }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () =>
+  console.log(`🚀 Server running at http://localhost:${PORT}`)
+);
